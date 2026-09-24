@@ -49,6 +49,9 @@
   --color-text-primary: #edf2f7;
   --color-text-secondary: #9aa7b5;
   --color-primary: #5aade6;
+  /* Hover/pressed di mode gelap (turunan §2.1: primary-soft terang akan
+     menyala di atas surface gelap, jadi pakai versi gelapnya). */
+  --color-primary-soft: #1e3a4d;
   --color-income: #4bd6a5;
   --color-expense: #f0838a;
 
