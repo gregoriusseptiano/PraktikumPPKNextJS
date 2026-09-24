@@ -11,7 +11,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: "DUITku — Catat Keuangan Harian",
+  title: "DUITku: Catat Keuangan Harian",
   description:
     "DUITku, aplikasi pencatat keuangan pribadi berbahasa Indonesia untuk mahasiswa.",
 };

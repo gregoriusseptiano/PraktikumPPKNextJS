@@ -56,6 +56,14 @@
   --radius-sm: 6px;
   --radius-xl: 32px;
 
+  /* Aliases for transaction modules */
+  --color-duit: var(--color-primary);
+  --color-on-duit: #ffffff;
+  --color-line: var(--color-divider);
+  --color-sub: var(--color-subtle);
+  --color-amber: #f59e0b;
+  --color-on-amber: #ffffff;
+
   /* Font */
   --font-sans: "Montserrat", system-ui, -apple-system, "Segoe UI", sans-serif;
 }
@@ -76,6 +84,14 @@
   --color-ink: #edf2f7;
   --color-subtle: #9aa7b5;
   --color-on-primary: #10161f;
+
+  /* Aliases for transaction modules */
+  --color-duit: #5aade6;
+  --color-on-duit: #10161f;
+  --color-line: #2a3542;
+  --color-sub: #9aa7b5;
+  --color-amber: #fbbf24;
+  --color-on-amber: #10161f;
 }
 
 @theme inline {
@@ -102,6 +118,12 @@
   --color-chart-4: var(--color-chart-4);
   --color-chart-5: var(--color-chart-5);
   --color-chart-6: var(--color-chart-6);
+  --color-duit: var(--color-duit);
+  --color-on-duit: var(--color-on-duit);
+  --color-line: var(--color-line);
+  --color-sub: var(--color-sub);
+  --color-amber: var(--color-amber);
+  --color-on-amber: var(--color-on-amber);
   --font-sans: var(--font-sans);
 }
 

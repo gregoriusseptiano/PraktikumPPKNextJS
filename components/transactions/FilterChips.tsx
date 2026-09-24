@@ -18,10 +18,10 @@ export function FilterChips({ active }: { active: TransactionFilter }) {
             key={filter.value}
             href={filter.href}
             aria-current={isActive ? "page" : undefined}
-            className={`inline-flex min-h-11 items-center rounded-full px-4 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-duit ${
+            className={`inline-flex min-h-10 items-center rounded-lg px-4 text-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
               isActive
-                ? "bg-amber text-on-amber"
-                : "border border-line text-ink/70 hover:bg-ink/5 hover:text-ink"
+                ? "bg-primary text-white shadow-sm"
+                : "border border-divider bg-surface text-subtle hover:bg-muted/50 hover:text-ink"
             }`}
           >
             {filter.label}

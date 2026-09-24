@@ -13,33 +13,39 @@ export function TransactionRow({ item }: { item: RecentTransaction }) {
   const isIncome = item.type === "income";
 
   return (
-    <li className="flex min-h-16 items-center gap-3 border-b border-divider py-4 last:border-b-0">
-      <span
-        aria-hidden="true"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-primary text-on-primary"
+    <li className="border-b border-divider last:border-b-0">
+      <Link
+        href={`/transactions/${item.id}`}
+        aria-label={`Lihat detail transaksi ${item.category}, ${rupiah(item.amount, { prefix: true, sign: isIncome ? "auto" : "auto" })}`}
+        className="group flex min-h-16 items-center gap-3.5 py-3.5 px-3 -mx-3 rounded-lg transition-colors hover:bg-primary-soft/50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
       >
-        <CategoryIcon category={item.category} />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold text-ink">
-          {item.category || "Tanpa kategori"}
+        <span
+          aria-hidden="true"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded bg-primary text-on-primary transition-transform group-hover:scale-105"
+        >
+          <CategoryIcon category={item.category} />
         </span>
-        <span className="block truncate text-[11px] text-subtle">
-          {item.description
-            ? `${item.description}, ${formatTanggal(item.transactionDate)}`
-            : formatTanggal(item.transactionDate)}
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold text-ink group-hover:text-primary transition-colors">
+            {item.category || "Tanpa kategori"}
+          </span>
+          <span className="block truncate text-[12px] text-subtle">
+            {item.description
+              ? `${item.description} • ${formatTanggal(item.transactionDate)}`
+              : formatTanggal(item.transactionDate)}
+          </span>
         </span>
-      </span>
-      <span
-        className={`shrink-0 text-[15px] font-bold tabular-nums ${
-          isIncome ? "text-income-deep" : "text-expense-deep"
-        }`}
-      >
-        {rupiah(item.amount, {
-          prefix: false,
-          sign: true,
-        })}
-      </span>
+        <span
+          className={`shrink-0 text-[15px] font-bold tabular-nums ${
+            isIncome ? "text-income-deep" : "text-expense-deep"
+          }`}
+        >
+          {rupiah(item.amount, {
+            prefix: false,
+            sign: true,
+          })}
+        </span>
+      </Link>
     </li>
   );
 }
