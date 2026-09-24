@@ -1,36 +1,106 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DUITku - Aplikasi Pencatat Keuangan Harian
+
+Aplikasi pencatat keuangan pribadi berbahasa Indonesia untuk mahasiswa, dibangun dengan Next.js dan Supabase.
+
+## Fitur
+
+- **Autentikasi** - Registrasi, login, dan logout dengan Supabase Auth
+- **Dashboard** - Ringkasan saldo, pemasukan, pengeluaran, dan transaksi terakhir
+- **Transaksi** - CRUD transaksi (pemasukan/pengeluaran) dengan filter dan riwayat
+- **Laporan** - Ringkasan bulanan berdasarkan kategori
+- **Dark Mode** - Tema terang dan gelap dengan preferensi tersimpan di cookie
+
+## Tech Stack
+
+- **Frontend**: Next.js 16, React 19, Tailwind CSS 4
+- **Backend**: Next.js Server Actions, Supabase
+- **Database**: Supabase PostgreSQL
+- **Auth**: Supabase Authentication
+- **Icons**: Lucide React
+
+## Prerequisites
+
+- Node.js 18+
+- npm atau yarn
+- Supabase account
 
 ## Getting Started
 
-First, run the development server:
+### 1. Clone repository
+
+```bash
+git clone https://github.com/gregoriusseptiano/PraktikumPPKNextJS.git
+cd PraktikumPPKNextJS
+```
+
+### 2. Install dependencies
+
+```bash
+npm install
+```
+
+### 3. Setup Environment Variables
+
+Buat file `.env.local` di root project:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SECRET_KEY=your_supabase_service_role_key
+```
+
+### 4. Jalankan development server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Buka [http://localhost:3000](http://localhost:3000) di browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+app/
+├── (auth)/          # Halaman login dan register
+├── api/             # API routes
+├── dashboard/       # Halaman dashboard
+├── transactions/    # Halaman CRUD transaksi
+├── reports/         # Halaman laporan
+└── layout.tsx       # Root layout
 
-## Learn More
+lib/
+├── auth/            # Server actions untuk autentikasi
+├── dashboard/       # Data access layer dashboard
+└── supabase/        # Supabase client configuration
 
-To learn more about Next.js, take a look at the following resources:
+components/
+├── duitku/          # Komponen UI DUITku
+└── transactions/    # Komponen transaksi
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Akun Demo
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Untuk testing, gunakan akun berikut:
 
-## Deploy on Vercel
+- **Email**: `test@duitku.id`
+- **Password**: `test123`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Scripts
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `npm run dev` - Jalankan development server
+- `npm run build` - Build production
+- `npm run start` - Jalankan production server
+- `npm run lint` - Jalankan ESLint
+
+## Deployment
+
+Deploy ke [Vercel Platform](https://vercel.com):
+
+1. Push kode ke GitHub
+2. Import project di Vercel
+3. Set environment variables
+4. Deploy
+
+## License
+
+MIT
