@@ -1,26 +1,52 @@
 @import "tailwindcss";
 
+/*
+ * DUITku — token visual (DESIGN.md §3, Programmer 3 memakai untuk dashboard).
+ * Pasangan teks direncanakan: tinta di atas kertas, putih di atas hijau
+ * duit, merah expense di atas kertas, aksen amber untuk satu penekanan
+ * per layar (angka saldo). Hasil cek kontras (WCAG):
+ * terang: tinta/kertas 15.99, putih/duit 6.47, expense/kertas 6.06,
+ * amber/kertas 4.66 (teks besar saldo, butuh 3:1), duit/kertas 6.01;
+ * gelap: tinta/kertas 16.15, duit/kertas 9.77, expense/kertas 6.22,
+ * amber/kertas 9.04, teks-tombol/duit 9.77. Semua lolos AA.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --paper: #faf6ee;
+  --ink: #1c1b17;
+  --duit: #1e6b45;
+  --on-duit: #ffffff;
+  --amber: #b45309;
+  --expense: #b3261e;
+  --background: var(--paper);
+  --foreground: var(--ink);
+}
+
+/* Mode gelap diaktifkan via class "dark" pada <html> (toggle + cookie
+ * milik Programmer 1, SRS FR-08/FR-09; default terang, SRS P1-13). */
+.dark {
+  --paper: #141311;
+  --ink: #f2efe6;
+  --duit: #6fcf97;
+  --on-duit: #141311;
+  --amber: #f0a63c;
+  --expense: #e57373;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-duit: var(--duit);
+  --color-on-duit: var(--on-duit);
+  --color-accent: var(--amber);
+  --color-expense: var(--expense);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
 }
