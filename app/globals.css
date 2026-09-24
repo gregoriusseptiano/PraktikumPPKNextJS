@@ -1,26 +1,92 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand (DESIGN §2.1) */
+  --color-primary: #2491db;
+  --color-primary-dark: #0f6bff;
+  --color-primary-soft: #e8f3fc;
+
+  /* Semantic — hanya untuk arah uang, bukan chrome */
+  --color-income: #1fb58a;
+  --color-expense: #ef5b63;
+  --color-danger-arc: #eb6b6b;
+
+  /* Neutral */
+  --color-surface: #ffffff;
+  --color-bg-muted: #ebebeb;
+  --color-divider: #e6e9ed;
+  --color-text-primary: #1c2a39;
+  --color-text-secondary: #6b7785;
+  --color-text-on-primary: #ffffff;
+
+  /* Chart (encoding data saja, bukan chrome UI) */
+  --chart-1: #2b8fdc;
+  --chart-2: #ff5c8a;
+  --chart-3: #ff9016;
+  --chart-4: #14bf96;
+
+  /* Page background */
+  --background: #f4f7fa;
+  --foreground: var(--color-text-primary);
+
+  /* Radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-xl: 32px;
+  --radius-full: 999px;
+
+  /* Font */
+  --font-sans: "Montserrat", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+/* Mode gelap (DESIGN §2.1 — diverifikasi ulang dengan contrast checker, target WCAG AA) */
+[data-theme="dark"] {
+  --color-surface: #182230;
+  --color-bg-muted: #1e2936;
+  --color-divider: #2a3542;
+  --color-text-primary: #edf2f7;
+  --color-text-secondary: #9aa7b5;
+  --color-primary: #5aade6;
+  --color-income: #4bd6a5;
+  --color-expense: #f0838a;
+
+  --background: #10161f;
+  --foreground: var(--color-text-primary);
 }
 
 @theme inline {
+  --color-primary: var(--color-primary);
+  --color-primary-dark: var(--color-primary-dark);
+  --color-primary-soft: var(--color-primary-soft);
+  --color-income: var(--color-income);
+  --color-expense: var(--color-expense);
+  --color-danger-arc: var(--color-danger-arc);
+  --color-surface: var(--color-surface);
+  --color-muted: var(--color-bg-muted);
+  --color-divider: var(--color-divider);
+  --color-ink: var(--color-text-primary);
+  --color-sub: var(--color-text-secondary);
+  --color-on-primary: var(--color-text-on-primary);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-sans);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+/* Angka sejajar untuk nominal (DESIGN §2.2) */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Fokus keyboard selalu terlihat (DESIGN §8) */
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
