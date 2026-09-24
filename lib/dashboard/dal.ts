@@ -20,8 +20,9 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { DashboardData, RecentTransaction } from "./types";
+import type { DashboardData, RecentTransaction, ReportsData } from "./types";
 import {
+  aggregateByCategory,
   clampRecentLimit,
   computeSummary,
   isOwnedBy,
@@ -29,6 +30,7 @@ import {
   isUuid,
   normalizeAmount,
 } from "./summary";
+import { currentMonthKey, isValidMonth, monthRange } from "./format";
 
 /** Pesan generik untuk semua kegagalan data (SRS P3-14, NFR-04). */
 export const DASHBOARD_ERROR_MESSAGE =
@@ -145,10 +147,93 @@ export async function getDashboardData(
       if (item !== null) recent.push(item);
     }
 
-    return { summary, recent };
+    const displayName = await getDisplayName(userId);
+
+    return { summary, recent, displayName };
   } catch (err) {
     // Hanya log server; client menerima pesan generik (SRS P3-14).
     console.error("[dashboard] getDashboardData failed:", err);
+    throw new Error(DASHBOARD_ERROR_MESSAGE);
+  }
+}
+
+/**
+ * Nama sapaan dari profil milik user (avatar inisial, DESIGN.md §3.11).
+ * Best-effort: null bila belum ada sehingga UI memakai "Kamu".
+ * RLS profiles_select_own sudah membatasi ke baris milik sendiri.
+ */
+async function getDisplayName(userId: string): Promise<string | null> {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("name")
+      .eq("id", userId)
+      .maybeSingle();
+    if (error || !data) return null;
+    const name =
+      typeof (data as { name?: unknown }).name === "string"
+        ? (data as { name: string }).name.trim()
+        : "";
+    return name.length > 0 ? name : null;
+  } catch (err) {
+    console.error("[dashboard] getDisplayName failed:", err);
+    return null;
+  }
+}
+
+/**
+ * Data laporan satu bulan per tipe (DESIGN.md §4.4).
+ * Bulan invalid kembali ke bulan berjalan, tipe invalid ke "expense"
+ * (SRS P3-13). Semua baris milik user aktif (SRS P3-12).
+ */
+export async function getReportsData(
+  rawType: unknown = "expense",
+  rawMonth: unknown = currentMonthKey(),
+): Promise<ReportsData> {
+  const type = isTransactionType(rawType) ? rawType : "expense";
+  const month =
+    isValidMonth(rawMonth) && typeof rawMonth === "string"
+      ? rawMonth
+      : currentMonthKey();
+  const { start, end } = monthRange(month);
+  const userId = await requireUserId();
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("transactions")
+      .select(
+        "id, user_id, type, amount, category, description, transaction_date",
+      )
+      .eq("user_id", userId)
+      .eq("type", type)
+      .gte("transaction_date", start)
+      .lte("transaction_date", end)
+      .order("transaction_date", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    if (error) throw error;
+
+    const rows = (Array.isArray(data) ? data : [])
+      .map(toTransactionColumns)
+      .filter((row): row is TransactionColumns => row !== null);
+    const items: RecentTransaction[] = [];
+    for (const row of rows) {
+      const item = toRecentTransaction(row, userId);
+      if (item !== null) items.push(item);
+    }
+    const summary = computeSummary(rows);
+    const total = type === "income" ? summary.totalIncome : summary.totalExpense;
+    return {
+      month,
+      type,
+      total,
+      count: items.length,
+      byCategory: aggregateByCategory(rows),
+      items,
+    };
+  } catch (err) {
+    console.error("[dashboard] getReportsData failed:", err);
     throw new Error(DASHBOARD_ERROR_MESSAGE);
   }
 }

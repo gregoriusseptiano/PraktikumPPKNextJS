@@ -1,15 +1,14 @@
 "use client";
 
 /**
- * Error boundary dashboard (DESIGN.md §7: banner merah muda + "Coba lagi";
- * SRS P3-14, NFR-04). Prop `retry` stabil di Next 16.3. Objek error TIDAK
- * dirender agar stack trace, query, atau secret tidak bocor.
+ * Error boundary laporan (DESIGN.md §7; SRS P3-14, NFR-04).
+ * Objek error TIDAK dirender agar tidak ada kebocoran detail internal.
  */
-export default function DashboardError({ retry }: { retry: () => void }) {
+export default function ReportsError({ retry }: { retry: () => void }) {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[430px] flex-col bg-background">
-      <div className="bg-header px-5 pt-6 pb-10">
-        <p className="text-lg font-bold text-on-header">DUITku</p>
+      <div className="bg-header px-5 pt-6 pb-12">
+        <p className="text-lg font-bold text-on-header">Laporan Keuangan</p>
       </div>
       <div className="mx-[18px] -mt-6 flex-1 rounded-md bg-surface p-5">
         <div
@@ -17,7 +16,7 @@ export default function DashboardError({ retry }: { retry: () => void }) {
           className="rounded-md border border-expense/30 bg-expense/10 px-4 py-3"
         >
           <p className="text-sm font-semibold text-ink">
-            Gagal memuat beranda.
+            Gagal memuat laporan.
           </p>
           <p className="mt-1 text-sm text-subtle">
             Periksa koneksimu lalu coba lagi.

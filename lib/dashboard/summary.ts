@@ -31,6 +31,11 @@ export interface RawTransactionRow {
   amount: unknown;
 }
 
+/** Baris mentah plus kategori untuk agregasi chart. */
+export interface CategoryRow extends RawTransactionRow {
+  category?: unknown;
+}
+
 /** True bila value adalah tipe transaksi yang sah. */
 export function isTransactionType(
   value: unknown,
@@ -107,4 +112,80 @@ export function isOwnedBy(rowUserId: unknown, userId: string): boolean {
 /** True bila value berbentuk UUID (validasi ID sebelum query, SRS P3-13). */
 export function isUuid(value: unknown): boolean {
   return typeof value === "string" && UUID_RE.test(value);
+}
+
+/**
+ * Urutan warna chart kategori (encoding data, DESIGN.md §2.1).
+ * Kategori diurut nominal menurun, warna diberikan sesuai urutan itu
+ * dan dipertahankan di semua layar (jangan diacak).
+ */
+export const CATEGORY_COLOR_TOKENS = [
+  "chart-1",
+  "chart-2",
+  "chart-3",
+  "chart-4",
+  "chart-5",
+  "chart-6",
+] as const;
+
+export interface CategoryTotal {
+  category: string;
+  total: number;
+  /** Pangsa 0..1 terhadap total (untuk busur chart). */
+  share: number;
+  /** Token warna sesuai urutan nominal. */
+  colorToken: (typeof CATEGORY_COLOR_TOKENS)[number];
+}
+
+/**
+ * Agregasi per kategori untuk pie chart dan donut anggaran
+ * (DESIGN.md §3.3, §3.9, §4.4). Input seharusnya sudah difilter per
+ * user aktif dan per tipe/bulan oleh DAL; baris invalid dilewati.
+ */
+export function aggregateByCategory(
+  rows: readonly CategoryRow[],
+): CategoryTotal[] {
+  const totals = new Map<string, number>();
+  for (const row of rows) {
+    const amount = normalizeAmount(row.amount);
+    if (amount === null) continue;
+    const category =
+      typeof row.category === "string" && row.category.trim().length > 0
+        ? row.category.trim()
+        : "Lain-lain";
+    totals.set(category, (totals.get(category) ?? 0) + amount);
+  }
+  const grand = [...totals.values()].reduce((a, b) => a + b, 0);
+  if (grand <= 0) return [];
+  return [...totals.entries()]
+    .map(([category, total], index) => ({
+      category,
+      total: Math.round(total * 100) / 100,
+      share: total / grand,
+      colorToken:
+        CATEGORY_COLOR_TOKENS[index % CATEGORY_COLOR_TOKENS.length],
+    }))
+    .sort((a, b) => b.total - a.total)
+    .map((item, index) => ({
+      ...item,
+      colorToken:
+        CATEGORY_COLOR_TOKENS[index % CATEGORY_COLOR_TOKENS.length],
+    }));
+}
+
+export interface PieSlice extends CategoryTotal {
+  /** Sudut awal irisan, derajat, searah jarum jam dari atas. */
+  startAngle: number;
+  /** Sudut akhir irisan, derajat. */
+  endAngle: number;
+}
+
+/** Ubah agregasi kategori menjadi irisan pie (jumlah sudut 360). */
+export function buildPieSlices(items: readonly CategoryTotal[]): PieSlice[] {
+  let angle = 0;
+  return items.map((item) => {
+    const startAngle = angle;
+    angle += item.share * 360;
+    return { ...item, startAngle, endAngle: angle };
+  });
 }

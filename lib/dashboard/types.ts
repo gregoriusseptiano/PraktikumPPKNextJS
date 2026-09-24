@@ -27,4 +27,16 @@ export interface RecentTransaction {
 export interface DashboardData {
   summary: DashboardSummary;
   recent: RecentTransaction[];
+  /** Nama sapaan dari profil (null bila belum diisi, tampil "Kamu"). */
+  displayName: string | null;
+}
+
+/** Agregasi satu bulan untuk layar laporan (DESIGN.md §4.4). */
+export interface ReportsData {
+  month: string;
+  type: "income" | "expense";
+  total: number;
+  count: number;
+  byCategory: import("./summary").CategoryTotal[];
+  items: RecentTransaction[];
 }
