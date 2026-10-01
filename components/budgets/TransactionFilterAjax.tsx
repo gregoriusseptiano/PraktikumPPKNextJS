@@ -9,7 +9,13 @@
  * Acceptance: klik filter/search tidak reload (cek Network XHR + URL tetap)
  */
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import Link from "next/link";
+import { CategoryIcon } from "@/components/duitku/category-icons";
+import { TransactionAmount } from "@/components/transactions/TransactionAmount";
+import { actionLinkClass } from "@/components/transactions/styles";
+import { formatDate } from "@/lib/transactions/format";
+import { DeleteTransactionAjax } from "./DeleteTransactionAjax";
 import type { Transaction, TransactionFilter } from "@/lib/transactions/types";
 
 /** Props untuk TransactionFilterAjax */
@@ -20,6 +26,10 @@ export type TransactionFilterAjaxProps = {
   initialQ?: string;
   /** Bulan filter (opsional) */
   initialMonth?: string;
+  /** Data transaksi awal untuk SSR hydration */
+  initialTransactions?: Transaction[];
+  /** Total awal transaksi */
+  initialTotal?: number;
   /** Callback ketika data berubah */
   onDataChange?: (transactions: Transaction[], total: number) => void;
   /** Callback ketika loading state berubah */
@@ -66,6 +76,8 @@ export function TransactionFilterAjax({
   initialType = "all",
   initialQ = "",
   initialMonth,
+  initialTransactions,
+  initialTotal,
   onDataChange,
   onLoadingChange,
   onError,
@@ -74,10 +86,15 @@ export function TransactionFilterAjax({
   const [searchQ, setSearchQ] = useState(initialQ);
   const [debouncedQ, setDebouncedQ] = useState(initialQ);
   const [isLoading, setIsLoading] = useState(false);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [total, setTotal] = useState(0);
+  const [transactions, setTransactions] = useState<Transaction[]>(
+    initialTransactions ?? []
+  );
+  const [total, setTotal] = useState(
+    initialTotal ?? initialTransactions?.length ?? 0
+  );
   const [error, setError] = useState<string | null>(null);
 
+  const isInitialMountRef = useRef(true);
   const abortControllerRef = useRef<AbortController | null>(null);
   const onDataChangeRef = useRef(onDataChange);
   const onLoadingChangeRef = useRef(onLoadingChange);
@@ -98,52 +115,57 @@ export function TransactionFilterAjax({
     return () => clearTimeout(timer);
   }, [searchQ]);
 
-  // Fetch data ketika filter berubah
-  useEffect(() => {
-    // Cancel request sebelumnya
+  // Fetch data function
+  const fetchData = useCallback(async () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     abortControllerRef.current = new AbortController();
     const signal = abortControllerRef.current.signal;
 
-    const fetchData = async () => {
-      setIsLoading(true);
-      onLoadingChangeRef.current?.(true);
-      setError(null);
-      onErrorRef.current?.(null);
+    setIsLoading(true);
+    onLoadingChangeRef.current?.(true);
+    setError(null);
+    onErrorRef.current?.(null);
 
-      try {
-        const params = new URLSearchParams();
-        if (type !== "all") params.set("type", type);
-        if (debouncedQ.trim()) params.set("q", debouncedQ.trim());
-        if (initialMonth) params.set("month", initialMonth);
+    try {
+      const params = new URLSearchParams();
+      if (type !== "all") params.set("type", type);
+      if (debouncedQ.trim()) params.set("q", debouncedQ.trim());
+      if (initialMonth) params.set("month", initialMonth);
 
-        const url = `/api/transactions/list?${params.toString()}`;
-        const res = await fetch(url, { signal });
+      const url = `/api/transactions/list?${params.toString()}`;
+      const res = await fetch(url, { signal });
 
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || "Gagal memuat transaksi.");
-        }
-
+      if (!res.ok) {
         const data = await res.json();
-        setTransactions(data.data.transactions);
-        setTotal(data.data.total);
-        onDataChangeRef.current?.(data.data.transactions, data.data.total);
-      } catch (err) {
-        // Ignore abort errors
-        if (err instanceof Error && err.name === "AbortError") return;
-        const message =
-          err instanceof Error ? err.message : "Gagal memuat transaksi.";
-        setError(message);
-        onErrorRef.current?.(message);
-      } finally {
-        setIsLoading(false);
-        onLoadingChangeRef.current?.(false);
+        throw new Error(data.error || "Gagal memuat transaksi.");
       }
-    };
 
+      const data = await res.json();
+      setTransactions(data.data.transactions);
+      setTotal(data.data.total);
+      onDataChangeRef.current?.(data.data.transactions, data.data.total);
+    } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
+      const message =
+        err instanceof Error ? err.message : "Gagal memuat transaksi.";
+      setError(message);
+      onErrorRef.current?.(message);
+    } finally {
+      setIsLoading(false);
+      onLoadingChangeRef.current?.(false);
+    }
+  }, [type, debouncedQ, initialMonth]);
+
+  // Fetch data ketika filter / debouncedQ berubah
+  useEffect(() => {
+    // Lewati fetch pertama jika data SSR sudah disediakan dan query kosong
+    if (isInitialMountRef.current && initialTransactions !== undefined) {
+      isInitialMountRef.current = false;
+      return;
+    }
+    isInitialMountRef.current = false;
     fetchData();
 
     return () => {
@@ -151,7 +173,19 @@ export function TransactionFilterAjax({
         abortControllerRef.current.abort();
       }
     };
-  }, [type, debouncedQ, initialMonth]);
+  }, [fetchData, initialTransactions]);
+
+  // Listen for budget/transaction update events (dari form create/delete)
+  useEffect(() => {
+    const handleBudgetUpdate = () => {
+      fetchData();
+    };
+
+    window.addEventListener("budget-updated", handleBudgetUpdate);
+    return () => {
+      window.removeEventListener("budget-updated", handleBudgetUpdate);
+    };
+  }, [fetchData]);
 
   // Handle type change
   const handleTypeChange = (newType: TransactionFilter) => {
@@ -204,14 +238,14 @@ export function TransactionFilterAjax({
             value={searchQ}
             onChange={handleSearchChange}
             aria-label="Cari transaksi"
-            className="block w-full rounded-lg border border-divider bg-surface px-3 py-2 pr-10 text-sm text-ink placeholder:text-ink/40 focus:border-duit focus:outline-2 focus:outline-offset-1 focus:outline-duit sm:w-64"
+            className="block w-full rounded-lg border border-divider bg-surface px-3 py-2 pr-10 text-sm text-ink placeholder:text-ink/40 focus:border-primary focus:outline-2 focus:outline-offset-1 focus:outline-primary sm:w-64"
           />
           {searchQ && (
             <button
               type="button"
               onClick={handleClearSearch}
               aria-label="Hapus pencarian"
-              className="absolute inset-y-0 right-0 flex items-center pr-3 text-ink/60 hover:text-ink"
+              className="absolute inset-y-0 right-0 flex items-center pr-3 text-ink/60 hover:text-ink cursor-pointer"
             >
               <svg
                 className="h-4 w-4"
@@ -260,29 +294,73 @@ export function TransactionFilterAjax({
 
       {/* Transaction list */}
       {!isLoading && !error && transactions.length > 0 && (
-        <ul className="space-y-3" aria-label="Daftar transaksi">
+        <ul
+          className="divide-y divide-divider rounded-xl border border-divider bg-surface shadow-sm"
+          aria-label="Daftar transaksi"
+        >
           {transactions.map((tx) => (
-            <li key={tx.id}>
-              <a
-                href={`/transactions/${tx.id}`}
-                className="block rounded-lg border border-divider bg-surface p-4 transition-colors hover:border-ink/30"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-ink">{tx.category}</p>
-                    <p className="text-sm text-subtle">{tx.description || "-"}</p>
-                  </div>
-                  <p
-                    className={`text-sm font-semibold tabular-nums ${
-                      tx.type === "income" ? "text-income" : "text-expense"
-                    }`}
+            <li
+              key={tx.id}
+              className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 sm:p-5 transition-colors hover:bg-muted/30"
+            >
+              <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                <span
+                  aria-hidden="true"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-white shadow-sm"
+                >
+                  <CategoryIcon category={tx.category} size={20} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <Link
+                    href={`/transactions/${tx.id}`}
+                    className="block truncate font-semibold text-ink hover:text-primary transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                   >
-                    {tx.type === "income" ? "+" : "-"} Rp{" "}
-                    {tx.amount.toLocaleString("id-ID")}
+                    {tx.category}
+                  </Link>
+                  {tx.description ? (
+                    <p className="mt-0.5 truncate text-sm text-subtle">
+                      {tx.description}
+                    </p>
+                  ) : null}
+                  <p className="mt-1 text-xs text-subtle">
+                    {formatDate(tx.transaction_date)}
                   </p>
                 </div>
-                <p className="mt-1 text-xs text-subtle">{tx.transaction_date}</p>
-              </a>
+              </div>
+
+              <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-2 pt-2 sm:pt-0 border-t border-divider sm:border-0">
+                <TransactionAmount
+                  type={tx.type}
+                  amount={tx.amount}
+                  className="text-base sm:text-lg font-bold"
+                />
+                <div className="flex items-center gap-1.5">
+                  <Link
+                    href={`/transactions/${tx.id}`}
+                    className={actionLinkClass}
+                  >
+                    Detail
+                  </Link>
+                  <Link
+                    href={`/transactions/${tx.id}/edit`}
+                    className={actionLinkClass}
+                  >
+                    Ubah
+                  </Link>
+                  <DeleteTransactionAjax
+                    id={tx.id}
+                    onOptimisticDelete={() => {
+                      setTransactions((prev) =>
+                        prev.filter((item) => item.id !== tx.id)
+                      );
+                      setTotal((prev) => Math.max(0, prev - 1));
+                    }}
+                    onRollback={() => {
+                      fetchData();
+                    }}
+                  />
+                </div>
+              </div>
             </li>
           ))}
         </ul>
@@ -290,8 +368,32 @@ export function TransactionFilterAjax({
 
       {/* Empty state */}
       {!isLoading && !error && transactions.length === 0 && (
-        <div className="rounded-lg border border-divider bg-surface p-8 text-center">
-          <p className="text-subtle">Tidak ada transaksi ditemukan.</p>
+        <div className="rounded-xl border border-dashed border-divider bg-surface px-6 py-14 text-center shadow-sm">
+          <p className="text-base font-semibold text-ink">
+            {type === "income"
+              ? "Belum ada pemasukan"
+              : type === "expense"
+              ? "Belum ada pengeluaran"
+              : debouncedQ
+              ? "Tidak ada transaksi yang cocok"
+              : "Belum ada transaksi"}
+          </p>
+          <p className="mt-1 text-sm text-subtle">
+            {debouncedQ
+              ? `Tidak ditemukan transaksi dengan kata kunci "${debouncedQ}".`
+              : "Mulai catat pemasukan atau pengeluaran pertamamu."}
+          </p>
+          {debouncedQ && (
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={handleClearSearch}
+                className="inline-flex items-center justify-center rounded-lg border border-divider bg-surface px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-muted/50 cursor-pointer"
+              >
+                Reset Pencarian
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

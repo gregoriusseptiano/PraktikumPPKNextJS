@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, Calendar, Clock, Edit3 } from "lucide-react";
 import { Navbar } from "@/components/duitku/Navbar";
 import { CategoryIcon } from "@/components/duitku/category-icons";
-import { DeleteTransactionButton } from "@/components/transactions/DeleteTransactionButton";
+import { DeleteTransactionAjax } from "@/components/budgets/DeleteTransactionAjax";
 import {
   primaryButtonClass,
 } from "@/components/transactions/styles";
@@ -165,10 +165,11 @@ export default async function TransactionDetailPage({
                   <Edit3 size={16} />
                   <span>Ubah Transaksi</span>
                 </Link>
-                <DeleteTransactionButton
+                <DeleteTransactionAjax
                   id={transaction.id}
                   label="Hapus Transaksi"
                   variant="danger"
+                  redirectTo="/transactions"
                 />
               </div>
             </div>

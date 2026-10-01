@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { Navbar } from "@/components/duitku/Navbar";
-import { TransactionForm } from "@/components/transactions/TransactionForm";
-import { createTransactionAction } from "@/lib/transactions/actions";
+import { TransactionFormAjax } from "@/components/budgets/TransactionFormAjax";
 import { todayISO } from "@/lib/transactions/format";
 import { requireUser } from "@/lib/transactions/session";
 
@@ -46,8 +45,8 @@ export default async function NewTransactionPage({
           </p>
         </div>
 
-        <TransactionForm
-          action={createTransactionAction}
+        <TransactionFormAjax
+          mode="create"
           initial={{
             type,
             amount: "",
@@ -56,7 +55,7 @@ export default async function NewTransactionPage({
             transaction_date: todayISO(),
           }}
           submitLabel="Simpan Transaksi"
-          cancelHref="/transactions"
+          redirectHref="/transactions"
         />
       </main>
     </div>
