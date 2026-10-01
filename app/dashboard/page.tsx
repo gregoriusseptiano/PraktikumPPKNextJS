@@ -18,6 +18,7 @@ import {
   TransactionRow,
 } from "@/components/duitku/TransactionRow";
 import { CategoryIcon } from "@/components/duitku/category-icons";
+import { DashboardBudgetWidget } from "@/components/budgets/DashboardBudgetWidget";
 
 export const metadata: Metadata = {
   title: "Beranda | DUITku",
@@ -196,6 +197,11 @@ export default async function DashboardPage() {
             type="expense"
           />
         </section>
+
+        {/* P3-17 (Pertemuan 5): pulau AJAX pantauan budget — SSR tetap,
+            widget fetch /api/budgets/summary tanpa reload + auto-refresh
+            tiap mutasi via custom event/polling. */}
+        <DashboardBudgetWidget month={month} />
 
         {isZero && (
           <div className="rounded-xl border border-dashed border-divider bg-surface p-6 text-center">

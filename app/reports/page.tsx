@@ -16,6 +16,7 @@ import {
   LihatSemua,
   TransactionRow,
 } from "@/components/duitku/TransactionRow";
+import { ReportsBudgetBanner } from "@/components/budgets/ReportsBudgetBanner";
 
 export const metadata: Metadata = {
   title: "Laporan Keuangan | DUITku",
@@ -234,6 +235,11 @@ export default async function ReportsPage({
             </p>
           </div>
         </div>
+
+        {/* P3-18 (Pertemuan 5): banner AJAX anggaran vs realisasi —
+            fetch paralel /api/reports/summary + /api/budgets/summary
+            tanpa reload, warning 80%/100%. */}
+        <ReportsBudgetBanner month={month} />
 
         {/* Desktop 2-Column Grid: Chart (Left) & Transaction List (Right) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
