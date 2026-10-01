@@ -3,8 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Navbar } from "@/components/duitku/Navbar";
-import { TransactionForm } from "@/components/transactions/TransactionForm";
-import { updateTransactionAction } from "@/lib/transactions/actions";
+import { TransactionFormAjax } from "@/components/budgets/TransactionFormAjax";
 import { formatAmountInput } from "@/lib/transactions/format";
 import { getTransaction } from "@/lib/transactions/queries";
 import { requireUser } from "@/lib/transactions/session";
@@ -66,8 +65,9 @@ export default async function EditTransactionPage({
           </p>
         </div>
 
-        <TransactionForm
-          action={updateTransactionAction.bind(null, transaction.id)}
+        <TransactionFormAjax
+          mode="edit"
+          transactionId={transaction.id}
           initial={{
             type: transaction.type,
             amount: formatAmountInput(transaction.amount),
@@ -76,7 +76,7 @@ export default async function EditTransactionPage({
             transaction_date: transaction.transaction_date,
           }}
           submitLabel="Simpan Perubahan"
-          cancelHref={`/transactions/${transaction.id}`}
+          redirectHref={`/transactions/${transaction.id}`}
         />
       </main>
     </div>

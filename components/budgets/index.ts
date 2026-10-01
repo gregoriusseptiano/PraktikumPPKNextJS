@@ -13,3 +13,6 @@ export type { TransactionFormAjaxProps } from "./TransactionFormAjax";
 
 export { DeleteTransactionAjax } from "./DeleteTransactionAjax";
 export type { DeleteTransactionAjaxProps } from "./DeleteTransactionAjax";
+
+export { TransactionsClientView } from "./TransactionsClientView";
+export type { TransactionsClientViewProps } from "./TransactionsClientView";

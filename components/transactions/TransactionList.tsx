@@ -2,7 +2,7 @@ import Link from "next/link";
 import { formatDate } from "@/lib/transactions/format";
 import type { Transaction, TransactionFilter } from "@/lib/transactions/types";
 import { CategoryIcon } from "@/components/duitku/category-icons";
-import { DeleteTransactionButton } from "./DeleteTransactionButton";
+import { DeleteTransactionAjax } from "@/components/budgets/DeleteTransactionAjax";
 import { TransactionAmount } from "./TransactionAmount";
 import {
   actionLinkClass,
@@ -71,7 +71,10 @@ export function TransactionList({ transactions, filter }: TransactionListProps) 
               >
                 Ubah
               </Link>
-              <DeleteTransactionButton id={transaction.id} />
+              <DeleteTransactionAjax
+                id={transaction.id}
+                redirectTo="/transactions"
+              />
             </div>
           </div>
         </li>

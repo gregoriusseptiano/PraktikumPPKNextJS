@@ -30,6 +30,10 @@ export type TransactionFormAjaxProps = {
   onSuccess?: (transactionId?: string) => void;
   /** Callback setelah error */
   onError?: (error: string) => void;
+  /** Callback ketika tombol batal ditekan */
+  onCancel?: () => void;
+  /** Label kustom untuk tombol submit */
+  submitLabel?: string;
 };
 
 /** Style untuk input */
@@ -58,6 +62,8 @@ export function TransactionFormAjax({
   redirectHref,
   onSuccess,
   onError,
+  onCancel,
+  submitLabel,
 }: TransactionFormAjaxProps) {
   const [form, setForm] = useState<TransactionFormValues>(initial);
   const [fieldErrors, setFieldErrors] = useState<TransactionFieldErrors>({});
@@ -153,6 +159,12 @@ export function TransactionFormAjax({
       // Success - trigger budget refresh
       triggerBudgetRefresh();
 
+      // Reset form if create and staying on same view
+      if (mode === "create" && !redirectHref) {
+        setForm(initial);
+        setFieldErrors({});
+      }
+
       // Callback
       onSuccess?.(data.data?.id);
 
@@ -170,7 +182,7 @@ export function TransactionFormAjax({
     } finally {
       setIsSubmitting(false);
     }
-  }, [form, mode, transactionId, redirectHref, onSuccess, onError]);
+  }, [form, mode, transactionId, redirectHref, onSuccess, onError, initial]);
 
   // Handle form submit
   const handleSubmit = async (e: React.FormEvent) => {
@@ -350,20 +362,30 @@ export function TransactionFormAjax({
 
       {/* Actions */}
       <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
-        {redirectHref && (
+        {redirectHref ? (
           <a
             href={redirectHref}
             className="inline-flex min-h-11 items-center justify-center rounded-lg border border-divider bg-surface px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-muted/50"
           >
             Batal
           </a>
-        )}
+        ) : onCancel ? (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="inline-flex min-h-11 items-center justify-center rounded-lg border border-divider bg-surface px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-muted/50 cursor-pointer"
+          >
+            Batal
+          </button>
+        ) : null}
         <button
           type="submit"
           disabled={isLoading}
-          className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50"
+          className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-dark focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
         >
-          {isLoading ? "Menyimpan..." : mode === "edit" ? "Simpan" : "Tambah"}
+          {isLoading
+            ? "Menyimpan..."
+            : submitLabel || (mode === "edit" ? "Simpan" : "Tambah")}
         </button>
       </div>
     </form>

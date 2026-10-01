@@ -21,6 +21,8 @@ export type DeleteTransactionAjaxProps = {
   variant?: "link" | "danger";
   /** Callback setelah sukses */
   onSuccess?: () => void;
+  /** URL redirect setelah sukses */
+  redirectTo?: string;
   /** Callback setelah error */
   onError?: (error: string) => void;
   /** Callback untuk optimistic update (opsional) */
@@ -31,11 +33,11 @@ export type DeleteTransactionAjaxProps = {
 
 /** Style untuk tombol */
 const dangerButtonClass =
-  "inline-flex min-h-9 items-center justify-center rounded-lg bg-expense px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-expense/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-expense disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex min-h-11 items-center justify-center rounded-lg bg-expense px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-expense/90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-expense disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer";
 const dangerLinkClass =
-  "text-sm font-semibold text-expense transition-colors hover:text-expense/80";
+  "inline-flex min-h-10 items-center rounded-md px-2 text-sm font-medium text-expense transition-colors hover:bg-expense/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-duit cursor-pointer";
 const secondaryButtonClass =
-  "inline-flex min-h-9 items-center justify-center rounded-lg border border-divider bg-surface px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-muted/50";
+  "inline-flex min-h-11 items-center justify-center rounded-lg border border-divider bg-surface px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-muted/50 cursor-pointer";
 
 const triggerStyles: Record<"link" | "danger", string> = {
   link: dangerLinkClass,
@@ -48,6 +50,7 @@ export function DeleteTransactionAjax({
   label = "Hapus",
   variant = "link",
   onSuccess,
+  redirectTo,
   onError,
   onOptimisticDelete,
   onRollback,
@@ -94,6 +97,9 @@ export function DeleteTransactionAjax({
       handleClose();
       triggerBudgetRefresh();
       onSuccess?.();
+      if (redirectTo) {
+        window.location.href = redirectTo;
+      }
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Gagal menghapus transaksi.";
@@ -119,6 +125,9 @@ export function DeleteTransactionAjax({
       <dialog
         ref={dialogRef}
         aria-labelledby={titleId}
+        onClick={(e) => {
+          if (e.target === e.currentTarget) handleClose();
+        }}
         className="m-auto w-[calc(100vw-2rem)] max-w-sm rounded-[10px] border border-line bg-surface p-5 text-ink backdrop:bg-ink/40"
       >
         <h2 id={titleId} className="text-lg font-semibold">
