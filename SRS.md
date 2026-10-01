@@ -693,3 +693,108 @@ Sistem dianggap memenuhi SRS apabila:
 | **P1** | Register, Login, Logout, Session, Protected Route, Cookie Preference |
 | **P2** | Transaction Model, Create, Read, Update, Delete, History, Filter, Sorting |
 | **P3** | Dashboard, Income/Expense/Balance Summary, Recent Transactions, Authorization, Data Isolation, Security, Integration Test |
+
+---
+
+# 13. Pertemuan 5 — Budget Bulanan + AJAX (01 Oktober 2026)
+
+## 13.1 Audit AJAX Saat Ini (sebelum Pertemuan 5)
+
+| Area | Status | Bukti kode |
+|---|---|---|
+| Dashboard (`/dashboard`) | ❌ Belum AJAX murni | `app/dashboard/page.tsx` Server Component async + `getDashboardData()` langsung; `app/api/dashboard/summary/route.ts` ada tapi tidak pernah di-`fetch` client |
+| Reports (`/reports`) | ❌ Belum AJAX murni | `app/reports/page.tsx` SSR + `getReportsData()`; month/type switcher & `FilterChips` pakai `<Link href="?type=...">` = navigasi RSC, bukan `fetch` + patch DOM |
+| Manajemen transaksi (CRUD) | ⚠️ AJAX parsial via Server Actions | `TransactionForm.tsx`, `DeleteTransactionButton.tsx`, `login/register/page.tsx` pakai `useActionState`; `LogoutButton.tsx`, `ThemeToggle.tsx` pakai `useTransition` — ini POST background tanpa reload penuh, tapi tanpa `fetch`/loading skeleton/optimistic UI manual |
+| Filter transaksi | ❌ Belum AJAX | `components/transactions/FilterChips.tsx` + `app/transactions/page.tsx` (`searchParams` server) = full segment re-render tiap klik |
+| API siap AJAX tapi menganggur | ⚠️ Endpoint ada, konsumen tidak ada | `GET /api/dashboard/summary`, `GET /api/reports/summary` return `{ok:true,data}` scoped `user_id` — belum dipakai `fetch` dari Client Component manapun |
+
+Kesimpulan: klaim "AJAX" saat ini hanya lewat Server Actions. Wajib retrofit `fetch()` eksplisit agar memenuhi syarat Pertemuan 5 (dashboard, manajemen transaksi, filter tanpa reload).
+
+## 13.2 Fitur Baru: Budget Bulanan
+
+Tujuan: pengguna menetapkan anggaran pengeluaran per bulan (`YYYY-MM`) dan memantau realisasi dari transaksi `expense` miliknya sendiri.
+
+Skema yang disepakati (dikoordinasikan 3 programmer sebelum coding):
+
+```sql
+public.budgets (
+  id uuid PK DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  month text NOT NULL CHECK (month ~ '^[0-9]{4}-(0[1-9]|1[0-2])$'),
+  amount numeric(12,2) NOT NULL CHECK (amount > 0),
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  UNIQUE (user_id, month)
+);
+-- RLS: select/insert/update/delete own WHERE auth.uid() = user_id
+-- Index: (user_id, month)
+```
+
+Rumus pantauan: `terpakai = SUM(transactions.amount WHERE user_id AND type='expense' AND transaction_date IN monthRange(month))`, `sisa = budget.amount - terpakai`, `persen = terpakai / amount`, status `aman <80% | waspada 80-99% | over >=100%`.
+
+FR baru: FR-23 Create/Update Budget, FR-24 Read Budget + progress, FR-25 Delete Budget, FR-26 Budget Ownership (`user_id` dari session, `UNIQUE(user_id,month)`), FR-27 Budget AJAX (semua mutasi & pantauan tanpa reload), FR-28 Budget Isolation (user hanya lihat/hitung budget + expense miliknya).
+
+## 13.3 Ringkasan Pembagian Kerja (01 Oktober 2026)
+
+| Programmer | Branch | Modul 1 | Modul 2 | Fokus |
+|---|---|---|---|---|
+| **Programmer 1** | `feature/budget-model` | Budget Model & Auth | Budget CRUD API | Schema `budgets`, RLS, validasi, Server Actions + REST API scoped session |
+| **Programmer 2** | `feature/budget-transactions-ajax` | Budget ↔ Transaksi | AJAX Transaksi & Filter | Hitung terpakai/sisa, `fetch` filter + CRUD transaksi tanpa reload |
+| **Programmer 3** | `feature/budget-dashboard-security` | Budget Dashboard & Monitoring | AJAX Dashboard + Security | Widget progress AJAX, warning overbudget, isolasi & integration test |
+
+### Output Akhir Tiap Programmer (Pertemuan 5)
+
+| Programmer | Output Minimum |
+|---|---|
+| **P1** | Tabel `budgets` + RLS, `POST/PUT/DELETE /api/budgets`, Server Actions budget, halaman `/budgets` + `/budgets/new` + `/budgets/[month]/edit` |
+| **P2** | `GET /api/budgets/summary?month=`, `GET /api/transactions/list?type=&q=`, `TransactionFilterAjax` + `BudgetProgressBar` (fetch, debounce, optimistic UI) |
+| **P3** | `DashboardBudgetWidget` + `ReportsBudgetBanner` AJAX (polling/SWR), status aman/waspada/over, RLS negative test + E2E Auth→Transaksi→Budget→Dashboard |
+
+### Tugas Detail Programmer 1 — Budget Model & CRUD (`feature/budget-model`)
+
+| ID | Fitur | Detail Pekerjaan | Output |
+|---|---|---|---|
+| P1-15 | Budget Schema | Migrasi `supabase/budgets.sql`: tabel + `UNIQUE(user_id,month)` + index + trigger `updated_at` | SQL migration |
+| P1-16 | Budget RLS | `ENABLE RLS` + 4 policy `*_own` (`auth.uid()=user_id`), grant authenticated | RLS policies |
+| P1-17 | Budget Validation | `lib/budgets/validation.ts`: `isValidMonth`, amount `>0` max `9_999_999_999.99`, tolak bulan depan >12 bln | Validation logic |
+| P1-18 | Budget Actions | `lib/budgets/actions.ts`: `create/update/deleteBudgetAction` via `requireUser()`, `user_id` dari session, `revalidatePath(/budgets,/dashboard,/reports)` | Server Actions |
+| P1-19 | Budget REST API | `app/api/budgets/route.ts` (GET list + POST) + `app/api/budgets/[month]/route.ts` (GET/PUT/DELETE), 401/403/500 generik (NFR-04) | API endpoints |
+| P1-20 | Budget Pages SSR | `app/budgets/page.tsx` + `new/page.tsx` + `[month]/edit/page.tsx`, guard `middleware.ts` tambah `/budgets` ke protected | Budget UI SSR |
+
+Acceptance P1: satu user bisa buat 1 budget/bulan; duplikat `(user_id,month)` ditolak; amount ≤0 ditolak; user lain tidak bisa GET/PUT/DELETE via request langsung; error API generik.
+
+### Tugas Detail Programmer 2 — Budget ↔ Transaksi + AJAX (`feature/budget-transactions-ajax`)
+
+| ID | Fitur | Detail Pekerjaan | Output |
+|---|---|---|---|
+| P2-14 | Budget Usage DAL | `lib/budgets/usage.ts`: `getBudgetUsage(userId,month)` = join `budgets` + `SUM expense monthRange`, return `{budget,terpakai,sisa,persen,status}` | Usage calculator |
+| P2-15 | Budget Summary API | `GET /api/budgets/summary?month=` return usage JSON scoped session; `GET /api/transactions/list?type=&q=&month=` untuk AJAX | AJAX APIs |
+| P2-16 | AJAX Filter Transaksi | `components/budgets/TransactionFilterAjax.tsx`: Client Component `fetch(/api/transactions/list)` + debounce search + skeleton + `aria-live`, tanpa `<Link>` reload | Filter AJAX |
+| P2-17 | AJAX CRUD Transaksi | Refactor `TransactionForm` + `DeleteTransactionButton` ke mode AJAX: `fetch` POST/DELETE + optimistic update + rollback error, tetap fallback Server Action | CRUD AJAX |
+| P2-18 | Progress Bar | `components/budgets/BudgetProgressBar.tsx`: bar `%` + label sisa/over, warna aman/waspada/over, `fetch(/api/budgets/summary)` tiap CRUD sukses | Progress UI |
+
+Acceptance P2: klik filter/search tidak reload (cek Network XHR + URL tetap); tambah/hapus transaksi langsung update bar tanpa refresh; terpakai hanya hitung `expense` bulan & user aktif; gagal network tampil error aman + rollback.
+
+### Tugas Detail Programmer 3 — Dashboard AJAX + Security (`feature/budget-dashboard-security`)
+
+| ID | Fitur | Detail Pekerjaan | Output |
+|---|---|---|---|
+| P3-17 | Dashboard Budget Widget | `components/budgets/DashboardBudgetWidget.tsx`: Client `fetch(/api/budgets/summary?month=current)` + skeleton + auto-refresh tiap mutasi (custom event / polling 30 dtk) | Dashboard widget |
+| P3-18 | Reports Budget Banner | `ReportsBudgetBanner`: di `/reports` tampilkan anggaran vs realisasi + warning `80%`/`100%`, data via `fetch(/api/reports/summary + /api/budgets/summary)` paralel | Reports AJAX |
+| P3-19 | Budget Isolation | Semua query DAL + API wajib `eq(user_id, session.id)`; `assertBudgetOwnership()` untuk PUT/DELETE; test User A vs B tidak bocor | Authorization |
+| P3-20 | Budget Error Security | Pesan 401/403/404/500 generik, tanpa query/stack/secret; `BudgetError.tsx` boundary + `loading.tsx` skeleton | Secure errors |
+| P3-21 | Integration & Test | E2E: Register → login → buat budget → catat expense → widget berubah → overbudget warning → hapus; `lib/budgets/usage.test.ts` (`node --test`) + RLS negative test | Integration test |
+
+Acceptance P3: dashboard/reports update tanpa reload setelah CRUD budget/transaksi; overbudget tampil peringatan; User A tidak memengaruhi widget User B; zero-state budget = CTA "Tetapkan anggaran"; semua error generik.
+
+### Dependency Pertemuan 5
+
+```text
+P1 (schema + RLS + API budget)
+  ↓
+P2 (usage + AJAX filter/CRUD + progress)
+  ↓
+P3 (widget AJAX + warning + isolation test)
+```
+
+Aturan: koordinasi nama tabel/kolom/route sebelum coding; jangan kerja di `main`; PR menyebut `Pertemuan-5/FR-23..28`; `npm run build` + `lint` hijau sebelum merge.
