@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 // P1-08..P1-10 (FR-04..FR-07): refresh session Supabase + guard route privat.
 // Session disimpan di httpOnly cookie oleh Supabase (bukan password, P1).
-const PROTECTED_PREFIXES = ["/dashboard", "/transactions", "/reports"];
+const PROTECTED_PREFIXES = ["/dashboard", "/transactions", "/reports", "/budgets"];
 const AUTH_PAGES = ["/login", "/register"];
 
 function isPath(pathname: string, list: string[]): boolean {

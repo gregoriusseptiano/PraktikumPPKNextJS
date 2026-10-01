@@ -12,7 +12,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { isValidMonth, monthRange } from "@/lib/dashboard/format";
-import type { Budget, BudgetUsage, BudgetStatus } from "./types";
+import type { BudgetDTO, BudgetUsage, BudgetStatus } from "./types";
+import { toBudgetDTO, toBudgetDTOList } from "./types";
 
 /** Pesan generik untuk kegagalan data (SRS NFR-04). */
 export const BUDGET_ERROR_MESSAGE = "Gagal memuat data anggaran. Coba lagi.";
@@ -92,21 +93,17 @@ export async function getBudgetUsage(
       console.error("[budgets] getBudgetUsage expense error:", expenseRes.error.message);
     }
 
-    // Parse budget
-    let budget: Budget | null = null;
+    // Parse budget (DB snake_case -> DTO camelCase)
+    let budget: BudgetDTO | null = null;
     if (budgetRes.data) {
-      const rawAmount =
-        typeof budgetRes.data.amount === "string"
-          ? Number(budgetRes.data.amount)
-          : budgetRes.data.amount;
-      budget = {
+      budget = toBudgetDTO({
         id: budgetRes.data.id,
-        userId: budgetRes.data.user_id,
+        user_id: budgetRes.data.user_id,
         month: budgetRes.data.month,
-        amount: Number.isFinite(rawAmount) ? rawAmount : 0,
-        createdAt: budgetRes.data.created_at,
-        updatedAt: budgetRes.data.updated_at,
-      };
+        amount: budgetRes.data.amount,
+        created_at: budgetRes.data.created_at,
+        updated_at: budgetRes.data.updated_at,
+      });
     }
 
     // Hitung total expense
@@ -147,9 +144,12 @@ export async function getBudgetUsage(
 }
 
 /**
- * Ambil daftar budget milik user.
+ * Ambil daftar budget milik user (DTO camelCase).
+ * Catatan: `lib/budgets/queries.ts` punya `listBudgets` sejenis untuk
+ * baris DB snake_case (dipakai halaman /budgets P1); fungsi ini versi DTO
+ * untuk komponen AJAX P2. Keduanya query tabel yang sama.
  */
-export async function listBudgets(userId: string): Promise<Budget[]> {
+export async function listBudgets(userId: string): Promise<BudgetDTO[]> {
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -165,15 +165,16 @@ export async function listBudgets(userId: string): Promise<Budget[]> {
 
     if (!data || !Array.isArray(data)) return [];
 
-    return data.map((row) => ({
-      id: row.id,
-      userId: row.user_id,
-      month: row.month,
-      amount:
-        typeof row.amount === "string" ? Number(row.amount) : row.amount,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-    }));
+    return toBudgetDTOList(
+      data.map((row) => ({
+        id: row.id,
+        user_id: row.user_id,
+        month: row.month,
+        amount: row.amount,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
+      }))
+    );
   } catch (err) {
     console.error("[budgets] listBudgets failed:", err);
     throw new Error(BUDGET_ERROR_MESSAGE);
